@@ -13,7 +13,7 @@ from pathlib import Path
 class WOWFishingBot:
     def __init__(self):
         # 参数配置
-        self.fishing_key = 'f'  # 默认钓鱼快捷键
+        self.fishing_key = '`'  # 默认钓鱼快捷键
         self.target_fish_count = 10  # 目标钓鱼次数
         self.max_retries = 5  # 最大重试次数
         self.screenshot_interval = 0.5  # 截图间隔
@@ -97,7 +97,7 @@ class WOWFishingBot:
     def detect_sound(self):
         """监听声音线程"""
 
-        def audio_callback(indata, frames, time, status):
+        def audio_callback(indata):
             volume_norm = np.linalg.norm(indata) * 10
             if volume_norm > self.sound_threshold:
                 self.sound_detected = True
@@ -107,7 +107,7 @@ class WOWFishingBot:
                 try:
                     with sd.InputStream(callback=audio_callback):
                         sd.sleep(int(1000))  # 每秒检测一次
-                except Exception as e:
+                except Exception:
                     time.sleep(1)  # 如果音频设备有问题，等待后重试
             else:
                 time.sleep(1)
@@ -139,32 +139,32 @@ class WOWFishingBot:
             h, w = best_match.shape
             center_x = best_location[0] + w // 2
             center_y = best_location[1] + h // 2
-            return (center_x, center_y, best_max_val)
+            return center_x, center_y, best_max_val
 
         return None
 
-    def is_gear_cursor(self):
-        """检查鼠标是否变为齿轮形状，使用多个模板进行匹配"""
-        if not self.gear_cursor_templates:
-            return False
-
-        # 获取鼠标附近的截图
-        x, y = pyautogui.position()
-        screenshot = pyautogui.screenshot(region=(x - 15, y - 15, 30, 30))
-        screenshot = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
-
-        gray_screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
-
-        # 尝试每个齿轮光标模板
-        for gear_template in self.gear_cursor_templates:
-            result = cv2.matchTemplate(gray_screenshot, gear_template, cv2.TM_CCOEFF_NORMED)
-            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
-
-            # 如果匹配度足够高
-            if max_val >= self.match_threshold:
-                return True
-
-        return False
+    # def is_gear_cursor(self):
+    #     """检查鼠标是否变为齿轮形状，使用多个模板进行匹配"""
+    #     if not self.gear_cursor_templates:
+    #         return False
+    #
+    #     # 获取鼠标附近的截图
+    #     x, y = pyautogui.position()
+    #     screenshot = pyautogui.screenshot(region=(x - 15, y - 15, 30, 30))
+    #     screenshot = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
+    #
+    #     gray_screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
+    #
+    #     # 尝试每个齿轮光标模板
+    #     for gear_template in self.gear_cursor_templates:
+    #         result = cv2.matchTemplate(gray_screenshot, gear_template, cv2.TM_CCOEFF_NORMED)
+    #         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+    #
+    #         # 如果匹配度足够高
+    #         if max_val >= self.match_threshold:
+    #             return True
+    #
+    #     return False
 
     def take_screenshot(self):
         """截取屏幕并保存到临时文件，覆盖之前的截图"""
@@ -199,15 +199,15 @@ class WOWFishingBot:
             # 移动鼠标到鱼漂位置
             pyautogui.moveTo(bobber_pos[0], bobber_pos[1])
 
-            # 检查是否变为齿轮光标
-            time.sleep(0.5)
-            if self.is_gear_cursor():
-                print("检测到齿轮光标，等待鱼上钩...")
-                break
-            else:
-                print(f"第{retries + 1}次未检测到齿轮光标，重试...")
-                retries += 1
-                time.sleep(1)
+            # # 检查是否变为齿轮光标
+            # time.sleep(0.5)
+            # if self.is_gear_cursor():
+            #     print("检测到齿轮光标，等待鱼上钩...")
+            #     break
+            # else:
+            #     print(f"第{retries + 1}次未检测到齿轮光标，重试...")
+            #     retries += 1
+            #     time.sleep(1)
 
         if retries >= self.max_retries:
             print("超过最大重试次数，跳过本次钓鱼")
@@ -299,18 +299,6 @@ if __name__ == "__main__":
     #     match_threshold=0.7       # 图像匹配阈值
     # )
 
-    print("魔兽世界3.3.5钓鱼脚本 - 完整版")
-    print("=" * 50)
-    print("功能说明：")
-    print("- 按F键开始钓鱼（可通过update_settings修改）")
-    print("- ESC键终止程序")
-    print("- DELETE键中止钓鱼并重置计数")
-    print("- 需要在fishing_float目录下放置鱼漂模板图片（1.png, 2.png等）")
-    print("- 需要在gear_cursor目录下放置齿轮光标模板图片（1.png, 2.png等）")
-    print("- 截图会自动保存到temp_screenshot.png并覆盖")
-    print("- 自动从多个模板中匹配最佳结果")
-    print("=" * 50)
-
     # 检查必要的文件
     if not os.path.exists('fishing_float'):
         print("\n请在当前目录创建fishing_float文件夹，并放入鱼漂图片")
@@ -319,12 +307,12 @@ if __name__ == "__main__":
         float_files = list(Path('fishing_float').glob('*.png'))
         print(f"\n已找到 {len(float_files)} 张鱼漂图片")
 
-    if not os.path.exists('gear_cursor'):
-        print("\n请在当前目录创建gear_cursor文件夹，并放入齿轮光标图片")
-        print("例如：gear_cursor/1.png, gear_cursor/2.png等")
-    else:
-        cursor_files = list(Path('gear_cursor').glob('*.png'))
-        print(f"已找到 {len(cursor_files)} 张齿轮光标图片")
+    # if not os.path.exists('gear_cursor'):
+    #     print("\n请在当前目录创建gear_cursor文件夹，并放入齿轮光标图片")
+    #     print("例如：gear_cursor/1.png, gear_cursor/2.png等")
+    # else:
+    #     cursor_files = list(Path('gear_cursor').glob('*.png'))
+    #     print(f"已找到 {len(cursor_files)} 张齿轮光标图片")
 
     print("\n准备就绪，调用bot.start_fishing()开始钓鱼")
 
